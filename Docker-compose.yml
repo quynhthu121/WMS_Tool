@@ -1,21 +1,24 @@
+```yaml
 services:
-db:
-image: mariadb:10.4
-container_name: wms_tool_db
-restart: unless-stopped
-environment:
-MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
-MARIADB_DATABASE: wms_tool
-ports:
-- "3307:3306"
-volumes:
-- wms_db_data:/var/lib/mysql
-- ./database/init:/docker-entrypoint-initdb.d:ro
-healthcheck:
-test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "--password=$$MARIADB_ROOT_PASSWORD"]
-interval: 5s
-timeout: 5s
-retries: 20
+  db:
+    image: mariadb:10.4
+    container_name: wms_tool_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+      MARIADB_DATABASE: wms_tool
+    ports:
+      - "3307:3306"
+    volumes:
+      - wms_db_data:/var/lib/mysql
+      - ./database/init/01-base-tables.sql:/docker-entrypoint-initdb.d/01-base-tables.sql:ro
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/02-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
-wms_db_data:
+  wms_db_data:
+```
