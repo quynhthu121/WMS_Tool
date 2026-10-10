@@ -11,10 +11,10 @@ name VARCHAR(255) NOT NULL,
 active TINYINT(1) NOT NULL DEFAULT 1,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-```
+
 PRIMARY KEY (id),
 UNIQUE KEY uq_warehouses_code (code)
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -28,7 +28,7 @@ zone_type VARCHAR(30) NOT NULL DEFAULT 'storage',
 active TINYINT(1) NOT NULL DEFAULT 1,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-```
+
 PRIMARY KEY (id),
 UNIQUE KEY uq_location_code (warehouse_id, code),
 KEY idx_location_warehouse (warehouse_id),
@@ -38,7 +38,7 @@ CONSTRAINT fk_location_warehouse
     REFERENCES warehouses(id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -55,7 +55,7 @@ updated_at TIMESTAMP NOT NULL
 DEFAULT CURRENT_TIMESTAMP
 ON UPDATE CURRENT_TIMESTAMP,
 
-```
+
 PRIMARY KEY (id),
 UNIQUE KEY uq_inventory_balance (
     product_sku,
@@ -74,7 +74,7 @@ CONSTRAINT fk_inventory_location
     REFERENCES warehouse_locations(id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -90,7 +90,7 @@ to_location_id INT NULL,
 reference_code VARCHAR(100) NULL,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-```
+
 PRIMARY KEY (id),
 KEY idx_movement_product_date (product_sku, created_at),
 KEY idx_movement_reference (reference_code),
@@ -112,7 +112,7 @@ CONSTRAINT fk_movement_to_location
     REFERENCES warehouse_locations(id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -126,7 +126,7 @@ status VARCHAR(30) NOT NULL DEFAULT 'draft',
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 confirmed_at TIMESTAMP NULL DEFAULT NULL,
 
-```
+
 PRIMARY KEY (id),
 UNIQUE KEY uq_receipt_code (receipt_code),
 KEY idx_receipt_partner (partner_id),
@@ -136,7 +136,7 @@ CONSTRAINT fk_receipt_partner
     REFERENCES partners(id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -150,7 +150,7 @@ expected_qty INT NOT NULL DEFAULT 0,
 received_qty INT NOT NULL DEFAULT 0,
 accepted_qty INT NOT NULL DEFAULT 0,
 
-```
+
 PRIMARY KEY (id),
 UNIQUE KEY uq_receipt_product (receipt_id, product_sku),
 
@@ -165,7 +165,7 @@ CONSTRAINT fk_receipt_item_product
     REFERENCES products(sku)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
-```
+
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
