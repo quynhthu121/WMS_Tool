@@ -1,4 +1,4 @@
-```sql
+
 CREATE TABLE IF NOT EXISTS products (
     id INT NOT NULL AUTO_INCREMENT,
     sku VARCHAR(50) NOT NULL,
@@ -16,4 +16,3 @@ CREATE TABLE IF NOT EXISTS partners (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
-```
