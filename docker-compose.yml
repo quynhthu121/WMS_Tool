@@ -1,0 +1,56 @@
+name: wms-tool-integration
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Dien DB_ROOT_PASSWORD trong .env}
+      MYSQL_DATABASE: login
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Dien DB_PASSWORD trong .env}
+    volumes:
+      - wms_mysql_data:/var/lib/mysql
+      - ./_installation/02-create-and-fill-users-table.sql:/docker-entrypoint-initdb.d/01-base.sql:ro
+      - ./_installation/04-create-partners-and-inventory-audit.sql:/docker-entrypoint-initdb.d/02-partners.sql:ro
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/03-wms.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8890:80"
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: login
+      DB_USER: app_user
+      DB_PASS: ${DB_PASSWORD:?Dien DB_PASSWORD trong .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8890/google_callback.php}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - .:/var/www/html
+      - wms_vendor_data:/var/www/html/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+
+  adminer:
+    image: adminer
+    ports:
+      - "127.0.0.1:8891:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  wms_mysql_data:
+  wms_vendor_data:

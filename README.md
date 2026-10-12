@@ -1,157 +1,152 @@
-# WMS Tool – Database Core (Sprint 1)
+# WMS Tool
 
-## 1. Giới thiệu
+Dự án WMS phục vụ seminar của nhóm tại UIT, kế thừa source FlowLink-SCM và bổ sung cấu trúc dữ liệu cho các nghiệp vụ quản lý kho.
 
-Database Core là phần cơ sở dữ liệu nền tảng của hệ thống Warehouse Management System (WMS) thuộc dự án WMS_Tool.
+## 1. Nguồn kế thừa
 
-Mục tiêu của Sprint 1 là xây dựng schema cơ sở dữ liệu, xác định các bảng nghiệp vụ kho, thiết lập khóa ngoại và bảo đảm các module sử dụng chung một mô hình dữ liệu.
+- Repo nhóm: https://github.com/quynhthu121/WMS_Tool
+- Source nền: https://github.com/nchphuong06/FlowLink-SCM
+- Commit nguồn dùng để tích hợp: `79ad75e2`.
+- Database Core được kế thừa từ nhánh `feature/db-core` của WMS_Tool.
 
-## 2. Công nghệ sử dụng
+Source ứng dụng được nhập từ phiên bản trên, sau đó chỉnh cấu hình Docker, biến môi trường, collation và mã hóa dữ liệu mẫu. Các commit cũ của FlowLink-SCM được tra cứu tại repo nguồn; không được nhập vào lịch sử WMS_Tool trong lần tích hợp này.
 
-* MariaDB / MySQL
-* SQL
-* InnoDB Storage Engine
-* Docker Compose (dự kiến sử dụng để khởi tạo database tự động vì máy người làm không tương thích với phiên bản Docker hiện tại)
+Giữ các thông tin tác giả và giấy phép có trong mã kế thừa. README của source gốc: https://github.com/nchphuong06/FlowLink-SCM/blob/79ad75e2/README.md
 
-## 3. Cấu trúc thư mục
+## 2. Công nghệ và cấu hình
 
-WMS_Tool/
-├── database/
-│   ├── init/
-│   │   └── 01-base-tables.sql
-│   └── schema.sql
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-└── README.md
+- PHP 8.1, Apache.
+- MySQL 8.0, InnoDB.
+- Composer, cài thư viện theo `composer.lock`.
+- Docker Compose.
+- Adminer để quản lý database.
+- Database dùng chung: `login`.
+- Website: http://localhost:8890
+- Adminer: http://localhost:8891
 
+## 3. Các thư mục và file chính
 
-* `database/init/01-base-tables.sql`: tạo các bảng nền `products` và `partners` nếu chưa tồn tại.
-* `database/schema.sql`: định nghĩa schema cho sáu bảng nghiệp vụ WMS.
-* `docker-compose.yml`: cấu hình dịch vụ MariaDB và các file SQL khởi tạo.
-* `.env.example`: mẫu biến môi trường để tham khảo khi cấu hình.
-* `.gitignore`: quy định các file không đưa lên Git, bao gồm file `.env` chứa cấu hình cục bộ.
+| Đường dẫn | Vai trò |
+|---|---|
+| `index.php`, `landing.php` | Điểm vào ứng dụng và trang giới thiệu |
+| `classes/` | Xử lý đăng ký, đăng nhập |
+| `modules/` | Các chức năng kế thừa |
+| `views/` | Giao diện |
+| `config/db.php` | Kết nối database và đọc cấu hình môi trường |
+| `_installation/` | Các script SQL của source nền |
+| `database/schema.sql` | Khởi tạo sáu bảng WMS mới |
+| `database/init/01-base-tables.sql` | Bản khởi tạo tối giản của Database Core; không được Compose hiện tại sử dụng |
+| `Dockerfile` | Build môi trường PHP và thư viện |
+| `docker-compose.yml` | Cấu hình web, database và Adminer |
+| `.env.example` | Mẫu cấu hình |
+| `.gitignore`, `.dockerignore` | Loại cấu hình riêng khỏi Git và Docker build context |
 
-## 4. Cấu trúc database
+## 4. Database
 
-Database hiện được kiểm tra trên môi trường MariaDB/XAMPP với tổng cộng 8 bảng.
+Database tích hợp có 12 bảng:
 
-| Bảng                  | Chức năng                                |
-| --------------------- | ---------------------------------------- |
-| `products`            | Lưu thông tin sản phẩm dùng chung        |
-| `partners`            | Lưu thông tin đối tác                    |
-| `warehouses`          | Quản lý kho                              |
-| `warehouse_locations` | Quản lý vị trí trong kho                 |
-| `inventory_balances`  | Theo dõi tồn kho theo sản phẩm và vị trí |
-| `stock_movements`     | Ghi nhận các biến động hàng hóa          |
-| `goods_receipts`      | Lưu thông tin phiếu nhập kho             |
-| `goods_receipt_items` | Lưu chi tiết sản phẩm trong phiếu nhập   |
+- Kế thừa: `users`, `products`, `partners`, `stock_picking`, `stock_move`, `inventory_audit`.
+- WMS mới: `warehouses`, `warehouse_locations`, `inventory_balances`, `stock_movements`, `goods_receipts`, `goods_receipt_items`.
 
-Các bảng sử dụng InnoDB để hỗ trợ khóa ngoại và bảo đảm tính toàn vẹn dữ liệu.
+Compose chạy các script theo thứ tự:
 
-## 5. Khởi tạo database bằng MariaDB/XAMPP
+1. `_installation/02-create-and-fill-users-table.sql`
+2. `_installation/04-create-partners-and-inventory-audit.sql`
+3. `database/schema.sql`
 
-### Bước 1: Khởi động dịch vụ
+Các bảng nghiệp vụ kho dùng `utf8mb4_unicode_ci`. Script nạp sản phẩm mẫu có `SET NAMES utf8mb4`.
 
-Mở XAMPP Control Panel và khởi động MySQL/MariaDB.
+Không chạy toàn bộ file trong `_installation/` một cách tự động: source cũ có các định nghĩa bảng trùng nhau. Dùng đúng danh sách script trong Compose.
 
-Mở phpMyAdmin tại địa chỉ tương ứng với cấu hình máy, ví dụ:
+## 5. Chạy trên máy thành viên
 
-`http://localhost:8080/phpmyadmin`
+Yêu cầu: Git, Docker Desktop và Docker Compose. Docker Desktop phải chạy được Linux engine.
 
-### Bước 2: Tạo database
+### Clone repo
 
-Trong phpMyAdmin, mở tab SQL và chạy:
-
-```sql
-CREATE DATABASE IF NOT EXISTS wms_tool
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+```bash
+git clone https://github.com/quynhthu121/WMS_Tool.git
+cd WMS_Tool
 ```
 
-Sau đó chọn database `wms_tool`.
+### Tạo cấu hình riêng
 
-### Bước 3: Tạo bảng nền
+Trong PowerShell:
 
-Mở file `database/init/01-base-tables.sql`, sao chép nội dung SQL thuần và thực thi trong tab SQL của database `wms_tool`.
-
-### Bước 4: Tạo các bảng WMS
-
-Mở file `database/schema.sql`, sao chép nội dung SQL thuần và thực thi trong tab SQL của database `wms_tool`.
-
-Lưu ý: Các file trên chứa lệnh `CREATE TABLE IF NOT EXISTS`; cần kiểm tra schema hiện có trước khi áp dụng vào database đã có dữ liệu. Không xóa database hoặc dữ liệu hiện tại chỉ để chạy lại các lệnh khởi tạo.
-
-## 6. Kiểm tra database
-
-### Kiểm tra tổng số bảng
-
-```sql
-SELECT COUNT(*) AS total_tables
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'wms_tool'
-  AND TABLE_TYPE = 'BASE TABLE';
+```powershell
+Copy-Item .env.example .env
 ```
 
-Kết quả mong đợi trong môi trường đã kiểm tra: `8`.
+Mở `.env` và đặt hai mật khẩu riêng cho:
 
-### Kiểm tra storage engine
+- `DB_ROOT_PASSWORD`
+- `DB_PASSWORD`
 
-```sql
-SELECT TABLE_NAME, ENGINE
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'wms_tool'
-ORDER BY TABLE_NAME;
+Các biến Google và Gemini có thể để trống khi kiểm tra đăng nhập thông thường và nghiệp vụ kho. Chỉ dùng Google hoặc AI sau khi cấu hình dịch vụ tương ứng.
+
+Không commit `.env` hoặc điền secret thật vào `.env.example`.
+
+### Build và khởi động
+
+```bash
+docker compose config --quiet
+docker compose build web
+docker compose up -d
+docker compose ps
 ```
 
-Các bảng được kiểm tra cần sử dụng InnoDB.
+Kết quả mong đợi: `db` có trạng thái `healthy`; `web` và `adminer` có trạng thái `Up`.
 
-### Kiểm tra khóa ngoại
+Mở website, tạo tài khoản mới tại `/register.php` và đăng nhập bằng tên đăng nhập, mật khẩu. Tài khoản và dữ liệu trên mỗi máy được lưu trong database cục bộ của máy đó.
 
-```sql
-SELECT
-    TABLE_NAME,
-    CONSTRAINT_NAME,
-    COLUMN_NAME,
-    REFERENCED_TABLE_NAME,
-    REFERENCED_COLUMN_NAME
-FROM information_schema.KEY_COLUMN_USAGE
-WHERE TABLE_SCHEMA = 'wms_tool'
-  AND REFERENCED_TABLE_NAME IS NOT NULL
-ORDER BY TABLE_NAME, CONSTRAINT_NAME;
+### Đăng nhập Adminer
+
+| Trường | Giá trị |
+|---|---|
+| Hệ thống | MySQL |
+| Máy chủ | `db` |
+| Người dùng | `app_user` |
+| Mật khẩu | Giá trị `DB_PASSWORD` trong `.env` |
+| Database | `login` |
+
+## 6. Dừng và mở lại
+
+Dừng container:
+
+```bash
+docker compose stop
 ```
 
-Kết quả đã kiểm tra trước đó có 9 khóa ngoại giữa các bảng WMS, sản phẩm và đối tác.
+Mở lại:
 
-## 7. Docker Compose
+```bash
+docker compose up -d
+```
 
-Dự án có file `docker-compose.yml` để cấu hình MariaDB và tự động chạy các file SQL trong thư mục `/docker-entrypoint-initdb.d/`.
+Dữ liệu nằm trong Docker volume. `docker compose down -v` xóa volume và dữ liệu.
 
-Để chạy Docker, máy cần cài đặt và khởi động được Docker Desktop hoặc một môi trường Docker tương thích. File `.env` phải được tạo từ `.env.example` và điền các giá trị phù hợp. Không commit file `.env` hoặc mật khẩu vào Git.
+Các script khởi tạo chỉ chạy khi volume database mới được tạo. Sửa file SQL không tự cập nhật database đã có; cần migration khi thay đổi cấu trúc.
 
-**Trạng thái kiểm thử:** Schema đã được kiểm tra trên MariaDB/XAMPP. Việc khởi tạo database bằng Docker chưa được xác minh thành công trên môi trường phát triển hiện tại.
+## 7. Kết quả kiểm tra hiện tại
 
-Lưu ý: Các script khởi tạo của image MariaDB thường chỉ chạy khi khởi tạo thư mục dữ liệu database lần đầu. Thay đổi script không tự động áp dụng vào volume đã được khởi tạo trước đó.
+Đã kiểm tra trên máy tích hợp ngày 12/10/2026:
 
-## 8. Trạng thái Sprint 1
+- Build image web thành công.
+- Ba dịch vụ khởi động được.
+- Database tạo đủ 12 bảng, sử dụng InnoDB.
+- Trang giới thiệu và dashboard hiển thị được.
+- Đăng nhập thành công.
+- Trang Sản phẩm đọc được ba sản phẩm mẫu.
+- Tên sản phẩm mẫu đã được sửa để hiển thị đúng tiếng Việt.
 
-### Đã thực hiện
+## 8. Công việc còn lại
 
-* Xây dựng schema cho sáu bảng nghiệp vụ WMS.
-* Liên kết với hai bảng nền `products` và `partners`.
-* Kiểm tra tổng cộng 8 bảng trong database.
-* Kiểm tra 9 khóa ngoại.
-* Xác nhận các bảng sử dụng InnoDB.
-* Sửa lỗi Markdown bị lẫn trong file SQL.
-* Commit và đồng bộ thay đổi trên GitHub.
+Đây là phiên bản source nền tích hợp, chưa nghiệm thu toàn bộ WMS.
 
-### Còn lại
-
-* Kiểm thử Docker Compose trên môi trường tương thích.
-* Xác nhận quá trình khởi tạo database tự động không có lỗi.
-
-## 9. Lưu ý khi phát triển
-
-* Sử dụng chung schema database giữa các module.
-* Không tạo thêm bảng tồn kho riêng biệt nếu chức năng đã được mô hình hóa bởi `inventory_balances`.
-* Khi thay đổi schema, cập nhật các file SQL liên quan và kiểm tra lại khóa ngoại.
-* Không đưa mật khẩu, thông tin kết nối riêng tư hoặc dữ liệu nhạy cảm lên GitHub.
+- Giao diện kế thừa vẫn dùng `products.qty` để quản lý tồn kho.
+- Cần tích hợp các module với `inventory_balances` và `stock_movements`.
+- Cần thống nhất cách sử dụng bảng cũ `stock_picking`, `stock_move` với các bảng WMS mới.
+- Cần hoàn thiện nghiệp vụ kho, ràng buộc số lượng và migration theo task của nhóm.
+- Chưa nghiệm thu đầy đủ luồng nhập kho, put-away, picking và packing.
+- Google Login và Gemini chưa được cấu hình, kiểm thử trong lần tích hợp này.
+- Secret Google từng xuất hiện trong source gốc cần được chủ tài khoản thu hồi hoặc thay mới.
