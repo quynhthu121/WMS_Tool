@@ -1,122 +1,87 @@
 <?php
 /**
- * Database configuration helper.
+ * Cấu hình kết nối database.
  *
- * Sử dụng biến môi trường khi chạy Docker, và fallback an toàn cho môi trường local.
+ * Chỉ đọc biến môi trường (Docker Compose truyền vào). Không có mật khẩu mặc định
+ * và không tự chuyển sang tài khoản root: thiếu cấu hình thì báo lỗi rõ ràng.
  */
 
-define('DB_HOST', getenv('DB_HOST') ?: 'db');
-define('DB_PORT', getenv('DB_PORT') ?: '3306');
-define('DB_USER', getenv('DB_USER') ?: 'app_user');
-define('DB_PASS', getenv('DB_PASS') ?: 'app_password');
-define('DB_NAME', getenv('DB_NAME') ?: 'login');
-define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
-define('DB_ROOT_USER', getenv('DB_ROOT_USER') ?: 'root');
-define('DB_ROOT_PASS', getenv('DB_ROOT_PASS') ?: 'root_password');
+if (!defined('DB_HOST')) {
+    define('DB_HOST', getenv('DB_HOST') ?: 'db');
+    define('DB_PORT', getenv('DB_PORT') ?: '3306');
+    define('DB_USER', getenv('DB_USER') ?: 'app_user');
+    define('DB_PASS', getenv('DB_PASS') !== false ? (string) getenv('DB_PASS') : '');
+    define('DB_NAME', getenv('DB_NAME') ?: 'login');
+    define('DB_CHARSET', 'utf8mb4');
+    define('DB_CONNECTION_TIMEOUT', 10);
 
-define('DB_CONNECTION_TIMEOUT', 10);
-
-function buildDsn(): string
-{
-    return sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', DB_HOST, DB_PORT, DB_NAME, DB_CHARSET);
+    define('GOOGLE_CLIENT_ID', getenv('GOOGLE_CLIENT_ID') ?: '');
+    define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '');
+    define('GOOGLE_REDIRECT_URI', getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost:8890/google_callback.php');
 }
 
-function connectPdo(string $user, string $password): PDO
-{
-    $dsn = buildDsn();
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ];
+if (!function_exists('getPdoConnection')) {
 
-    return new PDO($dsn, $user, $password, $options);
-}
-
-function getPdoConnection(): PDO
-{
-    static $pdo = null;
-    if ($pdo !== null) {
-        return $pdo;
+    function buildDsn(): string
+    {
+        return sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', DB_HOST, DB_PORT, DB_NAME, DB_CHARSET);
     }
 
-    try {
-        $pdo = connectPdo(DB_USER, DB_PASS);
-        return $pdo;
-    } catch (PDOException $e) {
-        error_log('Database PDO primary user connection failed: ' . $e->getMessage());
+    function dbConfigError(string $logMessage): void
+    {
+        error_log($logMessage);
+        if (PHP_SAPI === 'cli') {
+            fwrite(STDERR, $logMessage . PHP_EOL);
+            exit(1);
+        }
+        http_response_code(500);
+        exit('Lỗi kết nối cơ sở dữ liệu. Kiểm tra cấu hình DB_* trong .env.');
     }
 
-    if (DB_USER !== DB_ROOT_USER) {
-        try {
-            $pdo = connectPdo(DB_ROOT_USER, DB_ROOT_PASS);
-            error_log('Database PDO fallback to root user succeeded.');
+    function getPdoConnection(): PDO
+    {
+        static $pdo = null;
+        if ($pdo !== null) {
             return $pdo;
-        } catch (PDOException $e) {
-            error_log('Database PDO root fallback failed: ' . $e->getMessage());
         }
-    }
-
-    http_response_code(500);
-    exit('Database connection error.');
-}
-
-function getPDOLayerConnection(): PDO
-{
-    return getPdoConnection();
-}
-
-function connectMysqli(string $user, string $password): mysqli
-{
-    $mysqli = mysqli_init();
-    if ($mysqli === false) {
-        throw new RuntimeException('MySQLi initialization failed.');
-    }
-
-    $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, DB_CONNECTION_TIMEOUT);
-    if (!$mysqli->real_connect(DB_HOST, $user, $password, DB_NAME, (int) DB_PORT)) {
-        throw new RuntimeException('MySQLi connection failed: ' . $mysqli->connect_error);
-    }
-
-    if (!$mysqli->set_charset(DB_CHARSET)) {
-        error_log('MySQLi set_charset failed: ' . $mysqli->error);
-    }
-
-    return $mysqli;
-}
-
-function getMysqliConnection(): mysqli
-{
-    static $mysqli = null;
-    if ($mysqli !== null) {
-        return $mysqli;
-    }
-
-    try {
-        $mysqli = connectMysqli(DB_USER, DB_PASS);
-        return $mysqli;
-    } catch (RuntimeException $e) {
-        error_log($e->getMessage());
-    }
-
-    if (DB_USER !== DB_ROOT_USER) {
+        if (DB_PASS === '') {
+            dbConfigError('Thiếu biến môi trường DB_PASS.');
+        }
         try {
-            $mysqli = connectMysqli(DB_ROOT_USER, DB_ROOT_PASS);
-            error_log('MySQLi fallback to root user succeeded.');
-            return $mysqli;
-        } catch (RuntimeException $e) {
-            error_log($e->getMessage());
+            $pdo = new PDO(buildDsn(), DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]);
+            $pdo->exec("SET time_zone = '+07:00'");
+        } catch (PDOException $e) {
+            dbConfigError('Kết nối PDO thất bại: ' . $e->getMessage());
         }
+        return $pdo;
     }
 
-    http_response_code(500);
-    exit('Database connection error.');
+    function getPDOLayerConnection(): PDO
+    {
+        return getPdoConnection();
+    }
+
+    function getMysqliConnection(): mysqli
+    {
+        static $mysqli = null;
+        if ($mysqli !== null) {
+            return $mysqli;
+        }
+        $mysqli = mysqli_init();
+        $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, DB_CONNECTION_TIMEOUT);
+        mysqli_report(MYSQLI_REPORT_OFF);
+        if (!@$mysqli->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int) DB_PORT)) {
+            dbConfigError('Kết nối MySQLi thất bại: ' . $mysqli->connect_error);
+        }
+        $mysqli->set_charset(DB_CHARSET);
+        return $mysqli;
+    }
 }
 
-// Biến tương thích với mã hiện tại
+// Biến tương thích với mã kế thừa
 $conn = getPdoConnection();
 $db_connection = getMysqliConnection();
-
-define('GOOGLE_CLIENT_ID', getenv('GOOGLE_CLIENT_ID') ?: '');
-define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '');
-define('GOOGLE_REDIRECT_URI', getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost:8888/google_callback.php');

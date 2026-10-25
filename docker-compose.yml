@@ -20,16 +20,40 @@ services:
       retries: 20
       start_period: 30s
 
+  # Chạy một lần mỗi khi `up`: đồng bộ vendor theo composer.lock rồi áp dụng migration
+  # cho DB ứng dụng và DB test. Chỉ service này có mật khẩu root.
+  migrate:
+    build: .
+    image: wms-tool-app:local
+    command: ["sh", "-c", "composer install --no-interaction --prefer-dist --no-progress && php bin/migrate.php"]
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: login
+      DB_TEST_NAME: login_test
+      DB_USER: app_user
+      DB_ROOT_PASS: ${DB_ROOT_PASSWORD:?Dien DB_ROOT_PASSWORD trong .env}
+    volumes:
+      - .:/var/www/html
+      - wms_vendor_data:/var/www/html/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     build: .
+    image: wms-tool-app:local
     ports:
       - "127.0.0.1:8890:80"
     environment:
       DB_HOST: db
       DB_PORT: "3306"
       DB_NAME: login
+      DB_TEST_NAME: login_test
       DB_USER: app_user
       DB_PASS: ${DB_PASSWORD:?Dien DB_PASSWORD trong .env}
+      DEMO_RESET_ENABLED: ${DEMO_RESET_ENABLED:-0}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8890/google_callback.php}
@@ -40,6 +64,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   adminer:
     image: adminer
