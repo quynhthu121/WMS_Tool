@@ -140,7 +140,7 @@ $legacy = $pdo->query('SELECT * FROM inventory_audit ORDER BY id DESC LIMIT 50')
 </div>
 <?php if ($legacy): ?>
     <div class="card"><h2>Lịch sử kiểm kê kế thừa (chỉ đọc)</h2>
-        <p class="hint">Dữ liệu của module cũ (ghi trực tiếp products.qty, không có location). Không còn được ghi thêm.</p>
+        <p class="hint">Dữ liệu của module cũ (ghi đè thẳng tổng tồn sản phẩm, không có location, không có movement). Không còn được ghi thêm.</p>
         <table class="data"><tr><th>Mã</th><th>SKU</th><th class="num">Hệ thống</th><th class="num">Đếm</th><th class="num">Lệch</th><th>Ghi chú</th><th>Ngày</th></tr>
             <?php foreach ($legacy as $a): ?><tr class="dim"><td><?= View::e($a['audit_code']) ?></td><td><?= View::e($a['product_sku']) ?></td><td class="num"><?= (int) $a['system_qty'] ?></td><td class="num"><?= (int) $a['counted_qty'] ?></td><td class="num"><?= (int) $a['difference'] ?></td><td><?= View::e($a['note']) ?></td><td><?= View::e($a['audit_date']) ?></td></tr><?php endforeach; ?></table></div>
 <?php endif; ?>

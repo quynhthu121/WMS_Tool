@@ -39,6 +39,7 @@
 </head>
 
 <body>
+<div style="background:#7c2d12;color:#fff7ed;padding:7px 18px;font:500 13px Roboto,system-ui,sans-serif;text-align:center;position:relative;z-index:1000"><strong style="color:#fff">DEMO – dữ liệu giả lập.</strong> Seedcom Logistics chỉ là bối cảnh; công cụ này không phản ánh hệ thống thật và không khẳng định Seedcom sử dụng.</div>
     <div class="login-container">
         <div class="login-header">
             <h1>

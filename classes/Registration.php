@@ -133,17 +133,22 @@ class Registration
         } elseif (empty($_POST['google_oauth_token'])) {
             $this->errors[] = "Mã xác thực chữ ký số từ Google không hợp lệ.";
         } else {
-            // Giải mã Token của Google để lấy Email thật ở Backend nhằm chống gian lận dữ liệu gửi từ Client
-            $tokenParts = explode('.', $_POST['google_oauth_token']);
-            if (count($tokenParts) !== 3) {
-                $this->errors[] = "Token định danh an toàn cấu trúc bị lỗi.";
+            // Xác minh chữ ký ID token với Google (không tin payload tự giải mã từ client)
+            if (GOOGLE_CLIENT_ID === '') {
+                $this->errors[] = "Đăng nhập Google chưa được cấu hình trên máy chủ.";
                 return;
             }
-            $payload = json_decode(base64_decode(str_replace(array('-', '_'), array('+', '/'), $tokenParts[1])));
-            if (!$payload || !isset($payload->email)) {
-                $this->errors[] = "Chữ ký số Google hết hạn hoặc không tồn tại.";
+            require_once __DIR__ . '/../vendor/autoload.php';
+            try {
+                $verified = (new \Google\Client(['client_id' => GOOGLE_CLIENT_ID]))->verifyIdToken($_POST['google_oauth_token']);
+            } catch (\Throwable $e) {
+                $verified = false;
+            }
+            if (!$verified || empty($verified['email']) || empty($verified['email_verified'])) {
+                $this->errors[] = "Chữ ký số Google không hợp lệ hoặc đã hết hạn.";
                 return;
             }
+            $payload = (object) ['email' => $verified['email']];
 
             // Kết nối Database hệ thống Docker
             $this->db_connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);

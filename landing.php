@@ -40,18 +40,19 @@ try {
         $total_products = $row1['total'] ?? 0;
         $stmt1->closeCursor();
 
-        $stmt2 = $database_connection->prepare("SELECT SUM(qty) as total_qty FROM products");
+        // Tổng tồn đọc từ inventory_balances (nguồn sự thật duy nhất của tồn kho).
+        $stmt2 = $database_connection->prepare("SELECT COALESCE(SUM(on_hand), 0) as total_qty FROM inventory_balances");
         $stmt2->execute();
         $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
         $total_quantity = $row2['total_qty'] ?? 0;
         $stmt2->closeCursor();
     } else {
-        $total_products = rand(120, 150);
-        $total_quantity = rand(5400, 8900);
+        $total_products = 0;
+        $total_quantity = 0;
     }
 } catch (Exception $e) {
-    $total_products = 45;
-    $total_quantity = 1250;
+    $total_products = 0;
+    $total_quantity = 0;
 }
 
 // 4. Kiểm tra trạng thái đăng nhập để thay đổi nút bấm điều hướng
@@ -238,6 +239,7 @@ if (isset($_SESSION['user_login_status']) && $_SESSION['user_login_status'] == 1
     </style>
 </head>
 <body>
+<div style="background:#7c2d12;color:#fff7ed;padding:7px 18px;font:500 13px Roboto,system-ui,sans-serif;text-align:center;position:relative;z-index:1000"><strong style="color:#fff">DEMO – dữ liệu giả lập.</strong> Seedcom Logistics chỉ là bối cảnh; công cụ này không phản ánh hệ thống thật và không khẳng định Seedcom sử dụng.</div>
 
     <nav class="navbar navbar-expand-lg fixed-top py-3">
         <div class="container">
