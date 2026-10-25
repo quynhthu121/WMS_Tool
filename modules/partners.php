@@ -11,11 +11,11 @@ try {
     $tableCheck = $pdo->query("SHOW TABLES LIKE 'partners'")->fetch();
     if (!$tableCheck) throw new Exception("Bảng 'partners' chưa có. Hãy chạy file SQL cấu trúc trước.");
 
-    // [Chức năng 3] XỬ LÝ HÀNH ĐỘNG XÓA
-    if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['code'])) {
+    // [Chức năng 3] XỬ LÝ HÀNH ĐỘNG XÓA (POST + CSRF, index.php đã kiểm token)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_code'])) {
         $stmt = $pdo->prepare("DELETE FROM partners WHERE code = ?");
-        $stmt->execute([$_GET['code']]);
-        $messages[] = "Đã xóa đối tác có mã [{$_GET['code']}] thành công.";
+        $stmt->execute([$_POST['delete_code']]);
+        $messages[] = "Đã xóa đối tác có mã [" . $_POST['delete_code'] . "] thành công.";
     }
 
     // LẤY DỮ LIỆU ĐỂ SỬA
@@ -80,6 +80,7 @@ try {
         </div>
         
         <form method="POST" action="index.php?page=partners">
+            <?= \App\Support\Csrf::field() ?>
             <?php if($edit_mode): ?>
                 <input type="hidden" name="is_edit" value="1">
                 <input type="hidden" name="code" value="<?= htmlspecialchars($edit_data['code']) ?>">
@@ -155,8 +156,8 @@ try {
                     </td>
                     <td style="padding: 15px;"><?= htmlspecialchars($pt['phone']) ?></td>
                     <td style="padding: 15px;" class="no-export">
-                        <a href="index.php?page=partners&action=edit&code=<?= $pt['code'] ?>" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; text-decoration: none; margin-right: 5px;">Sửa</a>
-                        <a href="index.php?page=partners&action=delete&code=<?= $pt['code'] ?>" onclick="return confirm('Bạn chắc chắn xóa?');" style="background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; text-decoration: none;">Xóa</a>
+                        <a href="index.php?page=partners&action=edit&code=<?= urlencode($pt['code']) ?>" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; text-decoration: none; margin-right: 5px;">Sửa</a>
+                        <form method="POST" action="index.php?page=partners" style="display:inline" onsubmit="return confirm('Bạn chắc chắn xóa?');"><?= \App\Support\Csrf::field() ?><input type="hidden" name="delete_code" value="<?= htmlspecialchars($pt['code']) ?>"><button type="submit" style="background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer;">Xóa</button></form>
                     </td>
                 </tr>
                 <?php endforeach; ?>

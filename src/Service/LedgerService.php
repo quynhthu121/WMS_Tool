@@ -151,4 +151,19 @@ final class LedgerService
     {
         return self::TYPE_LABELS[$type] ?? $type;
     }
+
+    /** Mô tả vị trí của một dòng ledger theo ngôn ngữ nghiệp vụ (giữ hàng, điều chỉnh, xuất khỏi kho…). */
+    public static function route(array $m): string
+    {
+        $from = $m['from_code'] ?? null;
+        $to = $m['to_code'] ?? null;
+        return match ($m['movement_type']) {
+            'RESERVE' => "giữ tại {$to}",
+            'UNRESERVE' => "hủy giữ tại {$from}",
+            'ADJUST' => $to !== null ? "tại {$to} (+)" : "tại {$from} (−)",
+            'SHIPPING' => "{$from} → DOCK → (ra khỏi kho)",
+            'SHIP' => "{$from} → (ra khỏi kho)",
+            default => ($from ?? '(ngoài kho)') . ' → ' . ($to ?? '(ngoài kho)'),
+        };
+    }
 }
