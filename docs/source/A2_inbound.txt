@@ -1,0 +1,175 @@
+A2 - KỊCH BẢN INBOUND CHI TIẾT (RECEIVING ĐẾN PUT-AWAY) - WMS TOOL DEMO
+Phạm vi: Case study Seedcom Logistics chỉ là bối cảnh để xây dựng demo công cụ WMS.
+Kịch bản dưới đây mô phỏng theo case study, dùng đúng dữ liệu SIMULATION ở A1.
+Không phản ánh quy trình/hệ thống thật của doanh nghiệp; Seedcom Logistics không sử dụng công cụ demo này.
+
+==============================================================
+PHẦN 0: THUẬT NGỮ VÀ QUY TẮC BẮT BUỘC
+==============================================================
+
+Thuật ngữ (dùng thống nhất trong toàn bộ kịch bản):
+- Tổng tồn (on-hand) = tổng số lượng hàng đã được ghi nhận trong hệ thống ở MỌI location.
+- Tồn khả dụng = chỉ phần tồn nằm ở location loại Storage (A-01, B-01), theo quy ước ở A1 mục 2.2.
+- Location dùng trong Inbound (chỉ lấy từ Master Location của A1): RECEIVING, A-01, B-01.
+
+QUY TẮC BẮT BUỘC:
+R1. Tổng tồn CHỈ tăng ở bước "Xác nhận Receiving" (ghi nhận nhập).
+R2. PUT-AWAY KHÔNG LÀM TĂNG TỔNG TỒN. Put-away chỉ chuyển hàng từ RECEIVING sang A-01/B-01:
+    RECEIVING giảm bao nhiêu thì location lưu trữ tăng đúng bấy nhiêu (chuyển nội bộ, tổng không đổi).
+R3. Hàng nhận xong nằm ở RECEIVING. Hàng ở RECEIVING tính vào tổng tồn nhưng KHÔNG tính vào tồn khả dụng.
+R4. Hàng chỉ được phân bổ cho đơn (Outbound) sau khi put-away vào Storage (tồn khả dụng tăng ở bước put-away).
+R5. ASN/PO chỉ là số lượng DỰ KIẾN, không phải tồn kho; không làm thay đổi tồn.
+R6. Số lượng ghi nhận ở Receiving là số lượng THỰC NHẬN ĐẠT (sau kiểm đếm và QC), không phải số trên ASN.
+
+==============================================================
+PHẦN 1: QUY TRÌNH TỪNG BƯỚC (4 CỘT BẮT BUỘC)
+==============================================================
+
+Bước | Hành động | Người thực hiện | Location thay đổi? | Tồn kho tăng?
+-----|-----------|-----------------|--------------------|---------------
+1 | Nhận ASN/PO, tạo phiếu nhập dự kiến (SKU, số lượng, location đích dự kiến). | Điều phối Inbound (Inbound Coordinator) | Không | Không (ASN chỉ là dự kiến)
+2 | Xe đến, check-in, dỡ hàng xuống khu nhận. | Nhân viên nhận hàng (Receiver) | Có (vật lý): xe -> RECEIVING. Hệ thống CHƯA ghi nhận location. | Không
+3 | Kiểm đếm theo từng SKU, đối chiếu với ASN, ghi nhận chênh lệch (nếu có). | Receiver | Không (vẫn ở RECEIVING) | Không
+4 | QC: kiểm tra chất lượng, size/màu, nhãn. Phân loại đạt / lỗi. | Nhân viên QC | Không (vẫn ở RECEIVING) | Không
+5 | XÁC NHẬN RECEIVING: ghi nhận nhập phần hàng đạt vào hệ thống. | Receiver (Giám sát kho duyệt nếu có chênh lệch) | Có: (ngoài kho) -> RECEIVING | CÓ, tăng đúng bằng số lượng thực nhận đạt (ví dụ +45)
+6 | Hệ thống tạo task put-away, gợi ý location đích (A-01 cho Áo, B-01 cho Quần). | Hệ thống / Giám sát kho | Không | Không
+7 | Nhân viên nhận task, lấy hàng tại RECEIVING, di chuyển đến location đích. | Nhân viên put-away | Không (chưa xác nhận trên hệ thống) | Không
+8 | Quét location nguồn (RECEIVING), quét SKU, quét location đích (A-01 hoặc B-01); hệ thống kiểm tra đúng SKU, đúng số lượng, đúng location. | Nhân viên put-away | Không (mới kiểm tra) | Không
+9 | XÁC NHẬN PUT-AWAY: hệ thống chuyển tồn từ RECEIVING sang location đích. | Nhân viên put-away | Có: RECEIVING -> A-01 / B-01 | KHÔNG tăng tổng tồn (RECEIVING giảm, Storage tăng bằng nhau); tồn khả dụng tăng
+10 | Đóng phiếu nhập, đối soát ASN với thực nhận, lưu chênh lệch. | Giám sát kho | Không | Không
+
+==============================================================
+PHẦN 2: VÍ DỤ CHẠY HẾT KỊCH BẢN (SKU VÀ LOCATION THẬT TỪ A1)
+==============================================================
+
+2.1 Dữ liệu đầu vào
+- Phiếu nhập giả lập: ASN-DEMO-001 (đơn vị: Cái).
+- Trạng thái đầu kỳ lấy từ A1 mục 2.3 và 2.4: A-01 = 145, B-01 = 160, RECEIVING = 0, TỔNG = 305.
+
+Dòng ASN-DEMO-001:
+| Dòng | SKU            | Tên hàng      | Size/Màu  | SL ASN | Location đích |
+|------|----------------|---------------|-----------|--------|---------------|
+| 1    | AO-001-M-DEN   | Áo thun basic | M / Đen   | 20     | A-01          |
+| 2    | AO-002-L-TRG   | Áo sơ mi trơn | L / Trắng | 10     | A-01          |
+| 3    | QUAN-002-L-DEN | Quần tây      | L / Đen   | 15     | B-01          |
+| Tổng |                |               |           | 45     |               |
+
+Giả định cho ví dụ chính (đường đi chuẩn): thực nhận đủ 45, QC đạt 100%. Các ngoại lệ ở Phần 3.
+
+2.2 Tồn theo SKU và location trước khi bắt đầu (chỉ các SKU liên quan)
+
+| SKU            | RECEIVING | A-01 | B-01 | Tổng SKU |
+|----------------|-----------|------|------|----------|
+| AO-001-M-DEN   | 0         | 50   | 0    | 50       |
+| AO-002-L-TRG   | 0         | 25   | 0    | 25       |
+| QUAN-002-L-DEN | 0         | 0    | 20   | 20       |
+
+2.3 Bảng tồn theo từng bước
+
+BƯỚC 1-4 (nhận ASN, dỡ hàng, kiểm đếm, QC): hệ thống chưa ghi nhận gì.
+| Chỉ tiêu               | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------------|-----------|------|------|----------|--------------|
+| Trước                  | 0         | 145  | 160  | 305      | 305          |
+| Sau bước 1-4           | 0         | 145  | 160  | 305      | 305          |
+| Thay đổi tổng tồn      |           |      |      | +0       |              |
+
+BƯỚC 5 - XÁC NHẬN RECEIVING (+45, vào RECEIVING):
+| SKU            | RECEIVING trước -> sau | A-01 | B-01 |
+|----------------|------------------------|------|------|
+| AO-001-M-DEN   | 0 -> 20                | 50   | 0    |
+| AO-002-L-TRG   | 0 -> 10                | 25   | 0    |
+| QUAN-002-L-DEN | 0 -> 15                | 0    | 20   |
+
+| Chỉ tiêu               | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------------|-----------|------|------|----------|--------------|
+| Trước                  | 0         | 145  | 160  | 305      | 305          |
+| Sau bước 5             | 45        | 145  | 160  | 350      | 305          |
+| Thay đổi               | +45       | +0   | +0   | +45      | +0           |
+=> Đây là bước DUY NHẤT làm tăng tổng tồn (305 -> 350). Tồn khả dụng chưa tăng vì hàng còn ở RECEIVING.
+
+BƯỚC 6-8 (tạo task, nhận task, quét): chưa xác nhận nên số liệu không đổi.
+| Chỉ tiêu               | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------------|-----------|------|------|----------|--------------|
+| Sau bước 6-8           | 45        | 145  | 160  | 350      | 305          |
+| Thay đổi so với bước 5 | +0        | +0   | +0   | +0       | +0           |
+
+BƯỚC 9 - XÁC NHẬN PUT-AWAY (3 task, mỗi task một dòng ASN):
+
+Task 9a: AO-001-M-DEN, 20 cái, RECEIVING -> A-01
+| SKU          | RECEIVING | A-01 | B-01 |
+|--------------|-----------|------|------|
+| AO-001-M-DEN | 20 -> 0   | 50 -> 70 | 0 |
+
+| Chỉ tiêu         | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------|-----------|------|------|----------|--------------|
+| Trước 9a         | 45        | 145  | 160  | 350      | 305          |
+| Sau 9a           | 25        | 165  | 160  | 350      | 325          |
+| Thay đổi         | -20       | +20  | +0   | +0       | +20          |
+
+Task 9b: AO-002-L-TRG, 10 cái, RECEIVING -> A-01
+| SKU          | RECEIVING | A-01 | B-01 |
+|--------------|-----------|------|------|
+| AO-002-L-TRG | 10 -> 0   | 25 -> 35 | 0 |
+
+| Chỉ tiêu         | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------|-----------|------|------|----------|--------------|
+| Trước 9b         | 25        | 165  | 160  | 350      | 325          |
+| Sau 9b           | 15        | 175  | 160  | 350      | 335          |
+| Thay đổi         | -10       | +10  | +0   | +0       | +10          |
+
+Task 9c: QUAN-002-L-DEN, 15 cái, RECEIVING -> B-01
+| SKU            | RECEIVING | A-01 | B-01 |
+|----------------|-----------|------|------|
+| QUAN-002-L-DEN | 15 -> 0   | 0    | 20 -> 35 |
+
+| Chỉ tiêu         | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|------------------|-----------|------|------|----------|--------------|
+| Trước 9c         | 15        | 175  | 160  | 350      | 335          |
+| Sau 9c           | 0         | 175  | 175  | 350      | 350          |
+| Thay đổi         | -15       | +0   | +15  | +0       | +15          |
+
+BƯỚC 10 - ĐÓNG PHIẾU: không đổi số liệu. ASN 45 = Thực nhận đạt 45 = Đã put-away 45, chênh lệch 0.
+
+2.4 Tổng hợp toàn kịch bản
+
+| Mốc                        | RECEIVING | A-01 | B-01 | TỔNG TỒN | Tồn khả dụng |
+|----------------------------|-----------|------|------|----------|--------------|
+| Đầu kỳ (A1)                | 0         | 145  | 160  | 305      | 305          |
+| Sau Bước 5 (Receiving)     | 45        | 145  | 160  | 350      | 305          |
+| Sau Bước 9a (put-away)     | 25        | 165  | 160  | 350      | 325          |
+| Sau Bước 9b (put-away)     | 15        | 175  | 160  | 350      | 335          |
+| Sau Bước 9c (put-away)     | 0         | 175  | 175  | 350      | 350          |
+
+2.5 Kiểm chứng
+- Tổng tồn sau Receiving = 305 + 45 = 350.
+- Qua cả 3 task put-away, tổng tồn luôn = 350 (thay đổi = 0 ở mỗi task) => chứng minh "Put-away không tăng tổng tồn".
+- Kiểm tra chéo cuối kịch bản: A-01 = 145 + 20 + 10 = 175; B-01 = 160 + 15 = 175; RECEIVING = 0.
+  Tổng = 175 + 175 + 0 = 350 = 305 + 45. Khớp.
+- Kiểm tra theo SKU: AO-001-M-DEN 50 + 20 = 70; AO-002-L-TRG 25 + 10 = 35; QUAN-002-L-DEN 20 + 15 = 35.
+  Mức tăng = 20 + 10 + 15 = 45 = tổng thực nhận. Khớp.
+- Các location khác (PICK-STG, PACK-01, OUT-STG, DOCK) không tham gia, giữ nguyên 0.
+
+==============================================================
+PHẦN 3: CÁC TRƯỜNG HỢP NGOẠI LỆ (NGẮN GỌN)
+==============================================================
+
+Nguyên tắc chung: tổng tồn chỉ tăng theo số lượng thực nhận ĐẠT được xác nhận ở bước 5 (R6).
+
+E1. Nhận thiếu (thực nhận < ASN)
+- Ví dụ: ASN dòng 1 là 20, thực nhận 18.
+- Xử lý: ghi nhận chênh lệch -2 ở bước 3; xác nhận Receiving chỉ 18 (tổng tồn +18, không phải +20); put-away đúng 18. Phần thiếu để mở theo dõi (chờ bổ sung hoặc đóng với lý do), không tạo tồn ảo.
+
+E2. Nhận thừa (thực nhận > ASN)
+- Ví dụ: ASN dòng 2 là 10, thực nhận 12.
+- Xử lý: cách 1 - chỉ nhận đúng 10, hàng thừa 2 trả lại/để chờ quyết định; cách 2 - Giám sát kho duyệt nhận thừa thì xác nhận 12 (tổng tồn +12) và ghi rõ chênh lệch +2. Không tự động nhận thừa nếu chưa được duyệt.
+
+E3. Hàng lỗi (QC không đạt)
+- Ví dụ: dòng 3 là 15, QC đạt 13, lỗi 2.
+- Xử lý: ghi phiếu QC cho 2 cái lỗi; xác nhận Receiving chỉ 13 (tổng tồn +13); chỉ put-away 13 vào B-01. 2 cái lỗi không được put-away vào Storage, không tính vào tồn khả dụng; chờ xử lý trả nhà cung cấp.
+- Ghi chú phạm vi demo: Master Location ở A1 không có khu hàng lỗi riêng, nên demo xem hàng lỗi là hàng bị từ chối nhập (không vào tồn) và theo dõi trên phiếu QC. Nếu cần quản lý tồn hàng lỗi thì phải bổ sung location mới vào Master (ngoài phạm vi A1).
+
+E4. Quét sai location khi put-away
+- Xử lý: hệ thống chặn nếu location đích không phải Storage hợp lệ (A-01/B-01) hoặc không khớp task; không xác nhận cho đến khi quét đúng. Không có thay đổi tồn.
+
+==============================================================
+Mọi số liệu trong tài liệu này là SIMULATION phục vụ demo. Case study Seedcom Logistics chỉ là bối cảnh tham chiếu; đây không phải số liệu hay quy trình thật của Seedcom.

@@ -1,0 +1,110 @@
+A1 - TỔNG HỢP BỐI CẢNH VÀ DỮ LIỆU DEMO (WMS TOOL)
+Nguồn case study: "Giới thiệu DN - Bài toán - Hướng đi.docx" (cập nhật 09/10/2026)
+Phạm vi: Case study Seedcom Logistics chỉ là bối cảnh để xây dựng demo công cụ WMS.
+Kịch bản demo mô phỏng theo case study, không phản ánh hệ thống thật của doanh nghiệp.
+
+==============================================================
+MỤC 1: FACT (chỉ lấy từ case study, không suy diễn)
+==============================================================
+
+[Doanh nghiệp]
+- Seedcom là nhóm công ty hoạt động trong các lĩnh vực công nghệ, bán lẻ, dịch vụ và sản xuất.
+  (Nguồn: Mục 1, đoạn 1; bảng "Thông tin nền tảng", dòng "Lĩnh vực Seedcom")
+- Seedcom tự mô tả là doanh nghiệp tiên phong mô hình New Retail tại Việt Nam, ứng dụng công nghệ vào kinh doanh và trải nghiệm khách hàng.
+  (Nguồn: Mục 1, đoạn 1; bảng, dòng "Mô hình")
+- Seedcom Logistics đóng vai trò kết nối hoạt động phân phối giữa nhà cung cấp, các kênh bán lẻ, merchant và người tiêu dùng.
+  (Nguồn: Mục 1, đoạn 2; bảng, dòng "Seedcom Logistics")
+
+[Quy mô kho]
+- Vận hành 4 trung tâm phân phối (DC), theo case study của Blue Yonder.
+  (Nguồn: Mục 1, đoạn 2; bảng, dòng "Hạ tầng kho")
+- Các kho phục vụ hơn 35.000 điểm phân phối.
+  (Nguồn: Mục 1, đoạn 2; bảng, dòng "Mạng lưới phục vụ")
+- Diện tích kho, sức chứa, số vị trí kệ, số nhân sự: Không có trong case study.
+- Lưu ý nguồn: các số liệu quy mô dẫn theo case study/press release công khai của Blue Yonder (15/08/2023), không nên trình bày là số liệu quy mô hiện tại năm 2026 nếu chưa có nguồn cập nhật hơn.
+  (Nguồn: Mục 7, phần "Ghi chú")
+
+[Loại hàng]
+- Các DC có khu vực chuyên biệt cho hàng khô (dry), hàng tươi (fresh) và hàng cần kiểm soát nhiệt độ (temperature-controlled).
+  (Nguồn: Mục 1, đoạn 2; bảng, dòng "Hạ tầng kho")
+- Nhóm hàng Áo/Quần: Không có trong case study (đây là lựa chọn của nhóm cho demo, xem Mục 2).
+
+[Khối lượng]
+- Khối lượng đơn hàng hiện tại/ngày, số SKU, tồn kho trung bình: Không có trong case study.
+- Case study chỉ nêu định tính rằng khối lượng đơn hàng ngày càng tăng.
+  (Nguồn: Mục 3, câu bài toán; Mục 2, đoạn 2)
+
+[Quy trình hiện tại]
+- Quy trình kho chi tiết hiện tại của Seedcom Logistics: Không có trong case study.
+- Chỉ nêu có một hệ thống quản lý kho cũ (legacy WMS), và Seedcom Logistics triển khai WMS mới.
+  (Nguồn: Mục 2, đoạn 2)
+
+[Vấn đề / Pain point]
+- Legacy WMS không còn hỗ trợ tốt tốc độ tăng trưởng của Seedcom và yêu cầu của môi trường omni-channel (theo công bố của Blue Yonder).
+  (Nguồn: Mục 2, đoạn 2)
+- Môi trường omni-channel khiến cùng một mạng lưới tồn kho phải phục vụ nhiều nguồn nhu cầu và nhiều điểm phân phối, trong khi vẫn phải biết hàng ở đâu, trạng thái nào, việc kho nào cần ưu tiên.
+  (Nguồn: Mục 2, đoạn 1)
+
+[Mục tiêu]
+- Triển khai WMS mới nhằm tăng khả năng quan sát và kiểm soát gần thời gian thực trên mạng lưới phân phối, quản lý khối lượng đơn hàng tăng, cân bằng giữa chi phí và mức dịch vụ.
+  (Nguồn: Mục 2, đoạn 2)
+
+[Không thuộc FACT - ghi chú phân loại]
+- Câu bài toán, 3 năng lực nghiệp vụ, luồng Receiving đến Shipping, schema và business rules là PROPOSED SOLUTION do nhóm thiết kế cho prototype, không phải thông tin vận hành của doanh nghiệp.
+  (Nguồn: Mục 3, 4, 5)
+- Số liệu ví dụ trong case study (số lượng 20/50/12, Location R-01/A-01/A-02) là SIMULATION, không phải FACT.
+  (Nguồn: Mục 5, bảng phân loại)
+
+==============================================================
+MỤC 2: SIMULATION (dữ liệu giả lập để demo)
+==============================================================
+
+2.1 Quy tắc áp dụng cho demo
+- Quy tắc lấy hàng: FIFO (hàng Áo/Quần không có hạn dùng nên không dùng FEFO).
+- Chỉ SKU ở A-01 và B-01 có tồn đầu kỳ; mọi location còn lại tồn đầu kỳ = 0.
+- Đơn vị tính: Cái (PCS).
+
+2.2 Master Location (dùng chung cho Inbound và Outbound)
+
+| Mã location | Tên / Vai trò                 | Loại    | Tính vào tồn khả dụng? |
+|-------------|-------------------------------|---------|------------------------|
+| RECEIVING   | Khu nhận hàng                 | Staging | Không                  |
+| A-01        | Kệ lưu trữ A-01               | Storage | Có                     |
+| B-01        | Kệ lưu trữ B-01               | Storage | Có                     |
+| PICK-STG    | Khu chờ sau khi pick          | Staging | Không                  |
+| PACK-01     | Bàn đóng gói                  | Staging | Không                  |
+| OUT-STG     | Khu chờ xuất                  | Staging | Không                  |
+| DOCK        | Cửa xuất                      | Dock    | Không                  |
+
+Ghi chú: cột "Tính vào tồn khả dụng" là quy ước giả lập của nhóm cho demo (chỉ hàng đã put-away vào Storage mới được phân bổ cho đơn).
+
+2.3 Danh mục SKU và tồn đầu kỳ (8 SKU)
+
+| SKU              | Tên hàng            | Size/Màu | Location | Tồn đầu kỳ | Đơn vị |
+|------------------|---------------------|----------|----------|------------|--------|
+| AO-001-M-DEN     | Áo thun basic       | M / Đen  | A-01     | 50         | Cái    |
+| AO-001-L-DEN     | Áo thun basic       | L / Đen  | A-01     | 40         | Cái    |
+| AO-002-M-TRG     | Áo sơ mi trơn       | M / Trắng| A-01     | 30         | Cái    |
+| AO-002-L-TRG     | Áo sơ mi trơn       | L / Trắng| A-01     | 25         | Cái    |
+| QUAN-001-M-XAM   | Quần jogger         | M / Xám  | B-01     | 45         | Cái    |
+| QUAN-001-L-XAM   | Quần jogger         | L / Xám  | B-01     | 60         | Cái    |
+| QUAN-002-M-DEN   | Quần tây            | M / Đen  | B-01     | 35         | Cái    |
+| QUAN-002-L-DEN   | Quần tây            | L / Đen  | B-01     | 20         | Cái    |
+
+2.4 Đối chiếu tổng tồn theo location
+
+| Location  | SKU có tồn                                   | Tổng tồn đầu kỳ |
+|-----------|----------------------------------------------|-----------------|
+| A-01      | 4 SKU Áo (50 + 40 + 30 + 25)                 | 145             |
+| B-01      | 4 SKU Quần (45 + 60 + 35 + 20)               | 160             |
+| RECEIVING | Không                                        | 0               |
+| PICK-STG  | Không                                        | 0               |
+| PACK-01   | Không                                        | 0               |
+| OUT-STG   | Không                                        | 0               |
+| DOCK      | Không                                        | 0               |
+| TỔNG      | 8 SKU                                        | 305             |
+
+Kiểm tra chéo: nhóm Áo 145 + nhóm Quần 160 = 305 = tổng theo 7 location (145 + 160 + 0 x 5).
+
+==============================================================
+Mọi số liệu trong mục SIMULATION là giả lập phục vụ demo. Case study Seedcom Logistics chỉ là bối cảnh tham chiếu; đây không phải số liệu thật hay quy trình thật của Seedcom, và Seedcom không sử dụng công cụ demo này.

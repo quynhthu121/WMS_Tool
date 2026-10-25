@@ -1,0 +1,196 @@
+A4 - KỊCH BẢN INVENTORY & AUDIT (WMS TOOL DEMO)
+Phạm vi: Case study Seedcom Logistics chỉ là bối cảnh để xây dựng demo công cụ WMS.
+Kịch bản demo mô phỏng theo case study, dùng dữ liệu SIMULATION ở A1, nối tiếp A2 (Inbound) và A3 (Outbound: Kịch bản Outbound-WMS-EC214).
+Không phản ánh quy trình/hệ thống thật của doanh nghiệp; Seedcom Logistics không sử dụng công cụ demo này.
+
+==============================================================
+PHẦN 1: RULE TÍNH STOCK MOVEMENT
+==============================================================
+
+1.1 Phân loại movement
+
+| Movement                      | Luồng       | Từ -> Đến                        | Đổi TỔNG TỒN? | Đổi location? |
+|-------------------------------|-------------|----------------------------------|---------------|---------------|
+| Receiving (xác nhận nhập)     | Inbound A2  | (ngoài kho) -> RECEIVING         | CÓ (+)        | Có            |
+| Put-away                      | Inbound A2  | RECEIVING -> A-01 / B-01         | KHÔNG         | Có            |
+| Reservation                   | Outbound A3 | (không di chuyển hàng)           | KHÔNG         | Không (chỉ tăng Reserved) |
+| Picking                       | Outbound A3 | Storage -> PICK-STG              | KHÔNG         | Có            |
+| Packing (1)                   | Outbound A3 | PICK-STG -> PACK-01              | KHÔNG         | Có            |
+| Packing (2)                   | Outbound A3 | PACK-01 -> OUT-STG               | KHÔNG         | Có            |
+| Shipping                      | Outbound A3 | OUT-STG -> DOCK -> (ra khỏi kho) | CÓ (-)        | Có            |
+| Adjustment (sau kiểm kê)      | Audit A4    | Tại location được kiểm           | CÓ (+/-)      | Không         |
+
+=> Tổng tồn chỉ đổi ở 3 movement: Receiving (+), Shipping (-), Adjustment (+/-).
+=> Put-away, Picking, Packing chỉ đổi location: bên giảm = bên tăng, tổng không đổi.
+
+1.2 Công thức
+  Tồn cuối = Tồn đầu + Nhập (Receiving) - Xuất (Shipping) +/- Adjustment
+
+1.3 Ví dụ khớp A2 và A3 (toàn kho, 7 location)
+- Đầu kỳ (A1): 305.
+- Receiving ASN-DEMO-001 (A2): +45 => 350. Put-away 3 task: tổng vẫn 350.
+- Shipping ORD-DEMO-001 (30 cái AO-001-M-DEN, xem Phần 4): -30 => 320.
+- Adjustment cycle count (-2): => 318.
+- Kiểm tra công thức: 305 + 45 - 30 - 2 = 318. Khớp.
+
+==============================================================
+PHẦN 2: INVENTORY VISIBILITY THEO CẶP (SKU + LOCATION)
+==============================================================
+
+2.1 Định nghĩa (áp dụng cho từng cặp SKU + Location)
+- On-hand: số lượng hệ thống ghi nhận tại cặp đó.
+- Reserved (= Allocated): số lượng đã giữ cho đơn tại cặp đó.
+- Available = On-hand - Reserved (theo A3).
+- Chỉ location loại Storage (A-01, B-01) được phân bổ cho đơn (A1 mục 2.2, A2 quy tắc R3, R4).
+  Các location Staging/Dock: Available hiển thị = 0 (không phân bổ được).
+
+2.2 Vòng đời của Reserved (khớp A3)
+- TĂNG ở Reservation (giữ hàng tại Storage, On-hand không đổi, Available giảm).
+- GIỮ NGUYÊN (tổng theo SKU/đơn) qua Picking và Packing. Reserved đi theo hàng:
+  khi hàng pick từ A-01 sang PICK-STG thì phần Reserved cũng nằm ở cặp (SKU + PICK-STG).
+  Vì vậy tại cặp Storage, Available vẫn = On-hand - Reserved, không bị trừ hai lần.
+- GIẢM ở Shipping (cùng lúc On-hand giảm đúng số lượng xuất => Available không đổi, đúng bảng tổng hợp A3).
+- Ngoại lệ: khi Audit phát hiện thiếu hàng, phần Reserved không còn hàng đỡ được bị hủy và phân bổ lại (Phần 3.3).
+
+2.3 Bảng minh họa (dữ liệu A1 + A2): thời điểm SAU Inbound (A2 xong), SAU Reservation 30 cái AO-001-M-DEN cho ORD-DEMO-001
+
+| SKU            | Location | On-hand | Reserved | Available |
+|----------------|----------|---------|----------|-----------|
+| AO-001-M-DEN   | A-01     | 70      | 30       | 40        |
+| AO-001-L-DEN   | A-01     | 40      | 0        | 40        |
+| AO-002-M-TRG   | A-01     | 30      | 0        | 30        |
+| AO-002-L-TRG   | A-01     | 35      | 0        | 35        |
+| QUAN-001-M-XAM | B-01     | 45      | 0        | 45        |
+| QUAN-001-L-XAM | B-01     | 60      | 0        | 60        |
+| QUAN-002-M-DEN | B-01     | 35      | 0        | 35        |
+| QUAN-002-L-DEN | B-01     | 35      | 0        | 35        |
+| TỔNG           |          | 350     | 30       | 320       |
+
+Đối chiếu: A-01 = 70 + 40 + 30 + 35 = 175; B-01 = 45 + 60 + 35 + 35 = 175 (khớp A2 mục 2.4).
+350 - 30 = 320 (Available = On-hand - Reserved).
+
+2.4 Cùng SKU AO-001-M-DEN theo từng giai đoạn Outbound (cặp SKU + Location)
+
+| Giai đoạn         | Cặp SKU + Location       | On-hand | Reserved | Available |
+|-------------------|--------------------------|---------|----------|-----------|
+| Sau Reservation   | AO-001-M-DEN + A-01      | 70      | 30       | 40        |
+| Sau Picking       | AO-001-M-DEN + A-01      | 40      | 0        | 40        |
+|                   | AO-001-M-DEN + PICK-STG  | 30      | 30       | 0         |
+| Sau Packing (1)   | AO-001-M-DEN + PACK-01   | 30      | 30       | 0         |
+| Sau Packing (2)   | AO-001-M-DEN + OUT-STG   | 30      | 30       | 0         |
+| Sau Shipping      | AO-001-M-DEN + A-01      | 40      | 0        | 40        |
+|                   | (OUT-STG đã trống)       | 0       | 0        | 0         |
+
+Ở mọi cặp, On-hand - Reserved = Available (ở Staging, On-hand = Reserved nên hiệu = 0 đúng giá trị hiển thị).
+
+==============================================================
+PHẦN 3: KỊCH BẢN ĐỐI SOÁT (AUDIT)
+==============================================================
+
+3.1 Cycle count (kiểm kê định kỳ) - các bước
+
+Bước | Hành động | Người thực hiện | Tác động tồn
+-----|-----------|-----------------|-------------
+C1 | Tạo phiếu kiểm kê cho cặp (SKU + Location) cần kiểm; hệ thống chốt Tồn hệ thống tại thời điểm tạo phiếu. | Giám sát kho | Không
+C2 | Nhân viên kiểm đếm thực tế tại location, nhập Tồn thực tế (không nhìn trước số hệ thống, nếu có thể). | Nhân viên kiểm kê | Không
+C3 | Hệ thống tính Chênh lệch = Tồn thực tế - Tồn hệ thống. Chênh lệch = 0 thì đóng phiếu. | Hệ thống | Không
+C4 | Chênh lệch khác 0: kiểm đếm lại (recount) và rà soát giao dịch gần nhất (nhập/xuất/pick nhầm location). | Giám sát kho | Không
+C5 | Duyệt và tạo ADJUSTMENT (+/-) đúng bằng chênh lệch, ghi lý do. | Giám sát kho | CÓ: On-hand đổi +/- đúng bằng chênh lệch
+C6 | Đóng phiếu; lưu lịch sử Adjustment vào ledger. | Hệ thống | Không
+
+Lưu ý:
+- Adjustment chỉ đổi On-hand tại cặp được kiểm; không đổi location.
+- Reserved không được lớn hơn On-hand. Nếu Adjustment (-) làm On-hand < Reserved thì phần Reserved dư bị hủy và đơn tương ứng được phân bổ lại (xem 3.3).
+- Hàng đang ở staging (PICK-STG/PACK-01/OUT-STG) không nằm trong cycle count Storage của demo; chỉ kiểm cặp Storage.
+
+3.2 Ví dụ cycle count (khớp ledger Phần 4)
+- Cặp: AO-001-M-DEN + A-01, sau khi ORD-DEMO-001 đã Shipping.
+- Tồn hệ thống = 40. Tồn thực tế = 38. Chênh lệch = -2.
+- Recount cũng ra 38, không tìm thấy giao dịch nhầm => tạo Adjustment -2.
+- Kết quả: On-hand AO-001-M-DEN = 38, Reserved = 0, Available = 38.
+
+3.3 NGOẠI LỆ BẮT BUỘC: Pick thiếu hàng tại location => Audit => Adjustment => Reservation phân bổ lại từ location khác
+
+[GIẢ ĐỊNH BỔ SUNG - ghi rõ để tránh nhầm với A1]
+A1 chỉ cho mỗi SKU nằm ở 1 location. Để minh họa "phân bổ lại từ location khác" cần SKU có tồn ở 2 Storage.
+Vì vậy kịch bản ngoại lệ này là KỊCH BẢN ĐỘC LẬP (không cộng vào ledger chính Phần 4), giả định:
+  AO-001-M-DEN: A-01 hệ thống = 50, B-01 hệ thống = 10 (tổng 60). Đơn ORD-DEMO-002 yêu cầu 48 cái.
+Nếu nhóm muốn giữ nguyên tuyệt đối A1, thay thế bằng cách khai báo thêm 1 location Storage vào Master Location.
+
+Diễn biến:
+
+| Bước | Sự kiện | Location/Cặp | On-hand tổng | Reserved tổng | Available tổng | Ghi chú |
+|------|---------|--------------|--------------|---------------|----------------|---------|
+| 0 | Trạng thái ban đầu | A-01 = 50; B-01 = 10 | 60 | 0 | 60 | Available: A-01 50, B-01 10 |
+| 1 | Reservation 48 cho ORD-DEMO-002 | A-01 | 60 | 48 | 12 | Giữ tại A-01 (đủ 50). A-01: 50/48/2; B-01: 10/0/10 |
+| 2 | Picking: lấy được 44 (thực tế A-01 chỉ còn 44) | A-01 -> PICK-STG (44) | 60 | 48 | 12 | A-01: 6/4/2 (sổ còn 6, 4 Reserved chưa pick); PICK-STG: 44/44/0 |
+| 3 | PHÁT HIỆN THIẾU 4: kích hoạt Inventory Audit | A-01 | 60 | 48 | 12 | Khóa cặp AO-001-M-DEN + A-01 không cho phân bổ thêm; tạo phiếu kiểm kê |
+| 4 | Cycle count: Tồn hệ thống 6, thực tế 0, chênh lệch -6 | A-01 | 60 | 48 | 12 | Recount xác nhận 0 |
+| 5 | Hủy phần Reserved không còn hàng đỡ (4) | A-01 | 60 | 44 | 16 | A-01: 6/0/6 (Available tạm thời, chưa đúng thực tế vì sổ còn 6) |
+| 6 | ADJUSTMENT -6 tại A-01 | A-01 | 54 | 44 | 10 | A-01: 0/0/0; PICK-STG: 44/44/0; B-01: 10/0/10 |
+| 7 | Reservation lại 4 từ location khác | B-01 | 54 | 48 | 6 | B-01: 10/4/6. Đơn lại đủ 48 (44 đã pick + 4 mới giữ) |
+| 8 | Picking 4 từ B-01 | B-01 -> PICK-STG (4) | 54 | 48 | 6 | B-01: 6/0/6; PICK-STG: 48/48/0 |
+| 9 | Packing (1) và (2) | PICK-STG -> PACK-01 -> OUT-STG (48) | 54 | 48 | 6 | Chỉ đổi location |
+| 10 | Shipping 48 | OUT-STG -> DOCK -> ra khỏi kho | 6 | 0 | 6 | B-01: 6/0/6 |
+
+Kiểm tra: Available = On-hand - Reserved ở mọi dòng:
+ 60-0=60 | 60-48=12 | 12 | 12 | 12 | 60-44=16 | 54-44=10 | 54-48=6 | 6 | 6 | 6-0=6.
+Công thức tổng tồn: 60 (đầu) - 48 (Shipping) - 6 (Adjustment) = 6. Khớp.
+Ghi chú bước 5: hủy Reserved trước Adjustment để Reserved không vượt On-hand sau khi điều chỉnh; thứ tự thực tế do rule hệ thống quy định, kết quả cuối không đổi.
+
+Nếu không còn location nào đủ hàng: phần thiếu (4) chuyển trạng thái backorder/chờ bổ sung, đơn giao thiếu hoặc giữ chờ theo quyết định của điều phối. Không tạo tồn ảo.
+
+==============================================================
+PHẦN 4: LEDGER XUYÊN SUỐT CHO 1 SKU
+==============================================================
+
+SKU: AO-001-M-DEN (Áo thun basic, M / Đen). Đơn vị: Cái.
+Dòng chảy: Nhập (ASN-DEMO-001, dòng 1) -> Put-away -> Order ORD-DEMO-001 (yêu cầu 30) -> Reservation -> Picking -> Packing -> Shipping -> Audit.
+Đầu kỳ lấy từ A1 (A-01 = 50). Số nhập/put-away lấy từ A2 (20). Cột On-hand tổng, Reserved, Available tính theo SKU (mọi location).
+
+| # | Bước | Location | On-hand tổng | Reserved | Available | Ghi chú |
+|---|------|----------|--------------|----------|-----------|---------|
+| 0 | Đầu kỳ (A1) | A-01 | 50 | 0 | 50 | A-01 = 50; khớp A1 mục 2.3 |
+| 1 | Nhập - Xác nhận Receiving (A2, bước 5) | (ngoài kho) -> RECEIVING | 70 | 0 | 50 (*) | On-hand +20. A-01 = 50; RECEIVING = 20 (chưa khả dụng). Bước DUY NHẤT của luồng nhập làm tăng tồn |
+| 2 | Put-away (A2, task 9a) | RECEIVING -> A-01 | 70 | 0 | 70 | On-hand giữ 70 (chỉ đổi location). A-01 = 70; RECEIVING = 0. Available tăng 50 -> 70 |
+| 3 | Order created ORD-DEMO-001 (A3) | - | 70 | 0 | 70 | Yêu cầu 30. Chưa đổi tồn |
+| 4 | Reservation (A3) | A-01 | 70 | 30 | 40 | Reserved +30, Available -30. On-hand không đổi. A-01: 70/30/40 |
+| 5 | Picking (A3) | A-01 -> PICK-STG | 70 | 30 | 40 | Chỉ đổi location. A-01: 40/0/40; PICK-STG: 30/30/0 |
+| 6 | Packing (1) (A3) | PICK-STG -> PACK-01 | 70 | 30 | 40 | PACK-01 = 30 (Reserved đi theo hàng) |
+| 7 | Packing (2) (A3) | PACK-01 -> OUT-STG | 70 | 30 | 40 | OUT-STG = 30 |
+| 8 | Shipping (A3) | OUT-STG -> DOCK -> ra khỏi kho | 40 | 0 | 40 | On-hand -30, Reserved -30 (Available không đổi, đúng bảng A3). A-01 = 40 |
+| 9 | Audit: cycle count | A-01 | 40 | 0 | 40 | Hệ thống 40, thực tế 38, chênh lệch -2. Chưa đổi tồn cho đến khi duyệt |
+| 10 | Audit: Adjustment -2 | A-01 | 38 | 0 | 38 | On-hand -2. A-01 = 38 |
+
+(*) Dòng 1 là dòng duy nhất mà Available khác On-hand - Reserved ở cấp tổng SKU (70 - 0 = 70, nhưng hiển thị 50):
+    20 cái đang ở RECEIVING, tính vào tổng tồn nhưng KHÔNG khả dụng (A2 quy tắc R3). Ở cấp cặp (SKU + Location):
+    A-01 = 50/0/50 (đúng công thức); RECEIVING = 20 là khu không phân bổ nên Available = 0 theo quy ước A1 mục 2.2.
+    Từ dòng 2 trở đi, công thức Available = On-hand - Reserved đúng ở mọi dòng.
+
+Kiểm tra ledger:
+- Công thức: 50 (đầu) + 20 (Receiving) - 30 (Shipping) - 2 (Adjustment) = 38. Khớp dòng 10.
+- On-hand chỉ đổi ở dòng 1 (Receiving +20), dòng 8 (Shipping -30), dòng 10 (Adjustment -2). Các dòng 2, 5, 6, 7 đổi location, tổng không đổi.
+- Reserved: tăng ở dòng 4 (0 -> 30), giữ 30 ở dòng 5, 6, 7, giảm ở dòng 8 (30 -> 0).
+- Khớp A2: sau Put-away SKU = 70 (50 + 20), A-01 = 70 (A2 task 9a).
+- Khớp A3: Reservation (On-hand không đổi, Available giảm), Picking/Packing (không đổi), Shipping (On-hand giảm, Reserved giảm).
+
+Đối chiếu toàn kho (7 location) cùng mốc:
+
+| Mốc | A-01 | B-01 | Các location còn lại | TỔNG TỒN | Ghi chú |
+|-----|------|------|----------------------|----------|---------|
+| Sau Inbound (A2) | 175 | 175 | 0 | 350 | A2 mục 2.4 |
+| Sau Picking 30 | 145 | 175 | PICK-STG = 30 | 350 | Chỉ đổi location |
+| Sau Shipping 30 | 145 | 175 | 0 | 320 | 350 - 30 |
+| Sau Adjustment -2 | 143 | 175 | 0 | 318 | 320 - 2; AO-001-M-DEN còn 38 |
+
+==============================================================
+PHẦN 5: ĐỐI CHIẾU VỚI TIÊU CHÍ HOÀN THÀNH
+==============================================================
+
+- Link với luồng Nhập/Xuất: ledger Phần 4 dùng đúng SKU, số lượng, location của A1, A2 và các bước/trạng thái của A3.
+- On-hand chỉ đổi ở Receiving, Shipping, Adjustment: xác nhận ở Phần 1.1 và dòng 1, 8, 10 của ledger.
+- Available = On-hand - Reserved: đúng ở mọi dòng ledger, trừ dòng 1 có chú thích (*) vì hàng đang ở RECEIVING (không khả dụng theo A2/R3).
+- Ngoại lệ pick thiếu hàng: Phần 3.3 (kịch bản độc lập, có giả định bổ sung được nêu rõ).
+
+==============================================================
+Mọi số liệu trong tài liệu này là SIMULATION phục vụ demo. Case study Seedcom Logistics chỉ là bối cảnh tham chiếu; đây không phải số liệu hay quy trình thật của Seedcom, và Seedcom không sử dụng công cụ demo này.

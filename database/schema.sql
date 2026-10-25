@@ -1,7 +1,7 @@
 -- =====================================================
 -- WMS_Tool - Sprint 1
 -- Database Core Schema
--- MariaDB 10.4.32
+-- MySQL 8.0 (InnoDB) – baseline cho migration 000_baseline
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS warehouses (

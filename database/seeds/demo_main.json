@@ -1,0 +1,33 @@
+{
+  "_label": "SIMULATION – dữ liệu giả lập theo A1 mục 2 (docs/source/A1_boi_canh_du_lieu.txt). Không phải số liệu thật.",
+  "warehouse": { "code": "WH-DEMO", "name": "Kho demo (mô phỏng)" },
+  "locations": [
+    { "code": "RECEIVING", "name": "Khu nhận hàng",        "zone_type": "staging", "is_allocatable": 0, "pick_sequence": 1 },
+    { "code": "A-01",      "name": "Kệ lưu trữ A-01",      "zone_type": "storage", "is_allocatable": 1, "pick_sequence": 2 },
+    { "code": "B-01",      "name": "Kệ lưu trữ B-01",      "zone_type": "storage", "is_allocatable": 1, "pick_sequence": 3 },
+    { "code": "PICK-STG",  "name": "Khu chờ sau khi pick", "zone_type": "staging", "is_allocatable": 0, "pick_sequence": 4 },
+    { "code": "PACK-01",   "name": "Bàn đóng gói",         "zone_type": "staging", "is_allocatable": 0, "pick_sequence": 5 },
+    { "code": "OUT-STG",   "name": "Khu chờ xuất",         "zone_type": "staging", "is_allocatable": 0, "pick_sequence": 6 },
+    { "code": "DOCK",      "name": "Cửa xuất",             "zone_type": "dock",    "is_allocatable": 0, "pick_sequence": 7 }
+  ],
+  "products": [
+    { "sku": "AO-001-M-DEN",   "name": "Áo thun basic", "size": "M", "color": "Đen",   "putaway_location": "A-01" },
+    { "sku": "AO-001-L-DEN",   "name": "Áo thun basic", "size": "L", "color": "Đen",   "putaway_location": "A-01" },
+    { "sku": "AO-002-M-TRG",   "name": "Áo sơ mi trơn", "size": "M", "color": "Trắng", "putaway_location": "A-01" },
+    { "sku": "AO-002-L-TRG",   "name": "Áo sơ mi trơn", "size": "L", "color": "Trắng", "putaway_location": "A-01" },
+    { "sku": "QUAN-001-M-XAM", "name": "Quần jogger",   "size": "M", "color": "Xám",   "putaway_location": "B-01" },
+    { "sku": "QUAN-001-L-XAM", "name": "Quần jogger",   "size": "L", "color": "Xám",   "putaway_location": "B-01" },
+    { "sku": "QUAN-002-M-DEN", "name": "Quần tây",      "size": "M", "color": "Đen",   "putaway_location": "B-01" },
+    { "sku": "QUAN-002-L-DEN", "name": "Quần tây",      "size": "L", "color": "Đen",   "putaway_location": "B-01" }
+  ],
+  "opening": [
+    { "sku": "AO-001-M-DEN",   "location": "A-01", "qty": 50 },
+    { "sku": "AO-001-L-DEN",   "location": "A-01", "qty": 40 },
+    { "sku": "AO-002-M-TRG",   "location": "A-01", "qty": 30 },
+    { "sku": "AO-002-L-TRG",   "location": "A-01", "qty": 25 },
+    { "sku": "QUAN-001-M-XAM", "location": "B-01", "qty": 45 },
+    { "sku": "QUAN-001-L-XAM", "location": "B-01", "qty": 60 },
+    { "sku": "QUAN-002-M-DEN", "location": "B-01", "qty": 35 },
+    { "sku": "QUAN-002-L-DEN", "location": "B-01", "qty": 20 }
+  ]
+}
