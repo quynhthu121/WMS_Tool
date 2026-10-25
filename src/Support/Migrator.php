@@ -39,7 +39,8 @@ final class Migrator
         $applied = $this->applied();
         $count = 0;
         foreach ($this->files() as $version => $path) {
-            $checksum = hash_file('sha256', $path);
+            // Bỏ \r để checkout CRLF (Windows) và LF cho cùng checksum.
+            $checksum = hash('sha256', str_replace("\r\n", "\n", (string) file_get_contents($path)));
             if (isset($applied[$version])) {
                 if ($applied[$version]['checksum'] !== $checksum) {
                     throw new RuntimeException("Migration {$version} đã áp dụng nhưng nội dung file đã bị sửa. Hãy tạo migration mới thay vì sửa file cũ.");

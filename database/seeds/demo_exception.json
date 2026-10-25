@@ -1,0 +1,7 @@
+{
+  "_label": "SIMULATION – kịch bản độc lập, giả định bổ sung theo A4 §3.3: AO-001-M-DEN có thêm 10 cái tại B-01 (A-01 = 50, B-01 = 10). Tổng kho đầu kỳ 315.",
+  "extends": "demo_main",
+  "opening_extra": [
+    { "sku": "AO-001-M-DEN", "location": "B-01", "qty": 10 }
+  ]
+}
