@@ -98,7 +98,7 @@ $flashes = View::takeFlash();
     <title><?= View::e($pageTitle) ?> – WMS Tool (demo)</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/app.css?v=1">
+    <link rel="stylesheet" href="assets/app.css?v=4">
 </head>
 <body>
 <div class="demo-banner">

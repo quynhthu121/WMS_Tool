@@ -35,11 +35,9 @@ foreach ($pairs as $p) {
 </div>
 
 <div class="card">
-    <h2>Tổng tồn theo location (7 location của Master Location A1)</h2>
-    <div class="table-wrap"><table class="data">
-        <tr><?php foreach ($locations as $l): ?><th class="num"><?= View::e($l['code']) ?><br><span class="small muted"><?= View::e($l['zone_type']) ?><?= $l['is_allocatable'] ? ' · phân bổ được' : '' ?></span></th><?php endforeach; ?><th class="num">TỔNG</th></tr>
-        <tr><?php foreach ($locations as $l): ?><td class="num"><?= View::n($byLocation[$l['code']] ?? 0) ?></td><?php endforeach; ?><td class="num"><strong><?= View::n(array_sum($byLocation)) ?></strong></td></tr>
-    </table></div>
+    <h2>Sơ đồ kho – 7 location của Master Location A1 (tổng <?= View::n(array_sum($byLocation)) ?>)</h2>
+    <p class="hint">Rê chuột lên một ô để xem SKU đang nằm ở đó.</p>
+    <?= \App\Support\WarehouseMap::render($query->locationSnapshot()) ?>
 </div>
 
 <?php if ($ledgerSku !== ''): ?>
