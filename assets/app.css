@@ -147,3 +147,43 @@ input.qty { width: 90px; }
     .sidebar { width: 100%; }
     .content { padding: 16px; }
 }
+
+/* Sơ đồ kho trực quan (WarehouseMap) */
+.wmap { margin: 4px 0 14px; }
+.wmap-flow { display: grid; grid-template-columns: 92px 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px 92px; align-items: center; gap: 4px; }
+.wmap-col { display: flex; flex-direction: column; gap: 8px; }
+.wmap-arrow { text-align: center; color: #64748b; font-size: 20px; font-weight: 700; line-height: 1; }
+.wmap-tile { border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; padding: 9px 10px; min-height: 96px; transition: background .3s, border-color .3s, box-shadow .3s; }
+.wmap-tile.is-storage.has-stock { background: var(--ok-bg); border-color: #86efac; }
+.wmap-tile.is-staging.has-stock { background: var(--warn-bg); border-color: #fde047; }
+.wmap-tile.is-locked, .wmap-tile.is-storage.has-stock.is-locked { background: var(--fail-bg); border-color: #fca5a5; }
+.wmap-tile.is-changed { box-shadow: 0 0 0 3px var(--info); }
+.wmap-head { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.wmap-code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; font-size: 0.85rem; color: var(--navy); }
+.wmap-qty { font-size: 1.7rem; font-weight: 700; color: var(--navy); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.wmap-tile:not(.has-stock) .wmap-qty { color: #cbd5e1; }
+.wmap-name { font-size: 0.74rem; color: var(--muted); }
+.wmap-sku { font-family: ui-monospace, Consolas, monospace; font-size: 0.7rem; color: var(--ink-soft); margin-top: 2px; }
+.wmap-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.wmap-avail { font-size: 0.7rem; font-weight: 600; color: var(--ok); }
+.wmap-pill { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--info-bg); color: var(--info); }
+.wmap-lock { font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--fail); color: #fff; }
+.wmap-delta { font-size: 0.78rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+.wmap-delta.up { background: var(--ok); color: #fff; }
+.wmap-delta.down { background: #64748b; color: #fff; }
+.wmap-ghost { border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 9px 8px; min-height: 96px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.wmap-ghost.is-active { border-color: var(--info); background: var(--info-bg); }
+.wmap-flowqty { font-weight: 700; color: var(--info); margin-top: 4px; font-size: 0.9rem; }
+.wmap-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 0.78rem; color: var(--muted); align-items: center; }
+.wmap-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid; }
+.sw-store { background: var(--ok-bg); border-color: #86efac !important; }
+.sw-stage { background: var(--warn-bg); border-color: #fde047 !important; }
+.sw-locked { background: var(--fail-bg); border-color: #fca5a5 !important; }
+.sw-changed { background: #fff; border: 2px solid var(--info) !important; }
+@media (max-width: 1100px) {
+    .wmap-flow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .wmap-arrow { display: none; }
+}
+.step-now { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.step-now-text { flex: 1; min-width: 280px; }
+.step-now-label { font-size: 1.05rem; font-weight: 600; color: var(--navy); margin: 2px 0 4px; }

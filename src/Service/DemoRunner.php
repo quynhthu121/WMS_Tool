@@ -68,6 +68,7 @@ final class DemoRunner
         }
         $def = $scenario['steps'][$state['step']];
         $before = DemoScenarios::measure($this->pdo, $scenario['columns']);
+        $mapBefore = $this->mapState();
         $error = null;
         $message = '';
         try {
@@ -76,6 +77,7 @@ final class DemoRunner
             $error = $e->getMessage();
         }
         $after = DemoScenarios::measure($this->pdo, $scenario['columns']);
+        $mapAfter = $this->mapState();
         $ok = $error === null && $after === $def['expect'];
         $result = [
             'index' => $state['step'],
@@ -88,6 +90,8 @@ final class DemoRunner
             'message' => $error ?? $message,
             'error' => $error !== null,
             'reconciled' => ReconciliationService::pairMismatches($this->pdo) === [],
+            'map_before' => $mapBefore,
+            'map_after' => $mapAfter,
         ];
         if ($error !== null) {
             // Không tiến bước khi lỗi để người trình bày xử lý rồi bấm lại.
@@ -115,6 +119,19 @@ final class DemoRunner
             }
         }
         return $results;
+    }
+
+    /**
+     * Trạng thái gọn của sơ đồ kho để so sánh trước / sau một bước.
+     * @return array<string, array{on_hand:int, reserved:int, locked:bool}>
+     */
+    public function mapState(): array
+    {
+        $out = [];
+        foreach ((new InventoryQuery($this->pdo))->locationSnapshot() as $code => $l) {
+            $out[$code] = ['on_hand' => $l['on_hand'], 'reserved' => $l['reserved'], 'locked' => $l['locked']];
+        }
+        return $out;
     }
 
     public function demo(): DemoService

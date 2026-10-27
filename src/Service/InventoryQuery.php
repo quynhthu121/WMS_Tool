@@ -78,6 +78,39 @@ final class InventoryQuery
         return array_map('intval', $rows);
     }
 
+    /**
+     * Ảnh chụp từng location cho sơ đồ kho: On-hand, Reserved, có cặp bị khóa phân bổ, và SKU đang nằm ở đó.
+     * @return array<string, array{code:string, name:string, zone_type:string, is_allocatable:int,
+     *               on_hand:int, reserved:int, locked:bool, skus:array<string, int>}>
+     */
+    public function locationSnapshot(): array
+    {
+        $rows = $this->pdo->query("SELECT l.code, l.name, l.zone_type, l.is_allocatable,
+                COALESCE(SUM(b.on_hand), 0) AS on_hand, COALESCE(SUM(b.reserved), 0) AS reserved,
+                COALESCE(MAX(b.alloc_locked), 0) AS locked
+            FROM warehouse_locations l
+            LEFT JOIN inventory_balances b ON b.location_id = l.id AND b.stock_status = 'available'
+            WHERE l.active = 1 GROUP BY l.id, l.code, l.name, l.zone_type, l.is_allocatable, l.pick_sequence
+            ORDER BY l.pick_sequence")->fetchAll();
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r['code']] = [
+                'code' => $r['code'], 'name' => (string) $r['name'], 'zone_type' => $r['zone_type'],
+                'is_allocatable' => (int) $r['is_allocatable'], 'on_hand' => (int) $r['on_hand'],
+                'reserved' => (int) $r['reserved'], 'locked' => (bool) $r['locked'], 'skus' => [],
+            ];
+        }
+        $skus = $this->pdo->query("SELECT l.code, b.product_sku, b.on_hand FROM inventory_balances b
+            JOIN warehouse_locations l ON l.id = b.location_id
+            WHERE b.stock_status = 'available' AND b.on_hand > 0 ORDER BY b.product_sku")->fetchAll();
+        foreach ($skus as $s) {
+            if (isset($out[$s['code']])) {
+                $out[$s['code']]['skus'][$s['product_sku']] = (int) $s['on_hand'];
+            }
+        }
+        return $out;
+    }
+
     /** @return array{on_hand:int, reserved:int, available:int} */
     public function pair(string $sku, string $locationCode): array
     {
